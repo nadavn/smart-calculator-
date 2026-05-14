@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Smart Calculator</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
+  html, body { width: 100%; height: 100%; overflow: hidden; background: #0d1117; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; color: #c9d1d9; }
+  body { display: flex; justify-content: center; align-items: center; }
+  .phone { width: 100%; height: 100%; max-width: 430px; max-height: 932px; background: #161b22; padding: max(env(safe-area-inset-top), 8px) 12px max(env(safe-area-inset-bottom), 8px); position: relative; overflow: hidden; display: flex; flex-direction: column; }
+  @media (min-width: 440px) and (min-height: 900px) { .phone { border-radius: 40px; height: 85vh; box-shadow: 0 25px 50px rgba(0,0,0,0.5); border: 1px solid #30363d; } }
+  .state { display: none; }
+  #s-finance:target ~ .phone .state-finance, #s-date:target ~ .phone .state-date, #s-physics:target ~ .phone .state-physics, #s-health:target ~ .phone .state-health, #s-cooking:target ~ .phone .state-cooking, #s-temp:target ~ .phone .state-temp { display: block; }
+  .phone .state-default { display: block; }
+  #s-finance:target ~ .phone .state-default, #s-date:target ~ .phone .state-default, #s-physics:target ~ .phone .state-default, #s-health:target ~ .phone .state-default, #s-cooking:target ~ .phone .state-default, #s-temp:target ~ .phone .state-default { display: none; }
+  #s-finance:target ~ .phone .chip-finance, #s-date:target ~ .phone .chip-date, #s-physics:target ~ .phone .chip-physics, #s-health:target ~ .phone .chip-health, #s-cooking:target ~ .phone .chip-cooking, #s-temp:target ~ .phone .chip-temp { border-color: var(--accent); color: var(--accent); background: rgba(255,255,255,0.08); }
+  .history-strip { flex-shrink: 0; margin-top: 4px; margin-bottom: 6px; overflow-x: auto; white-space: nowrap; padding: 4px 0; -webkit-overflow-scrolling: touch; scrollbar-width: none; }
+  .history-strip::-webkit-scrollbar { display: none; }
+  .history-chip { display: inline-block; background: #21262d; border: 1.5px solid #30363d; border-radius: 10px; padding: 5px 10px; font-size: 12px; font-weight: 500; margin-right: 5px; text-decoration: none; color: #8b949e; -webkit-user-select: none; user-select: none; transition: all 0.15s; }
+  .history-chip:active { background: #30363d; transform: scale(0.95); }
+  .display { flex-shrink: 0; background: #0d1117; border-radius: 14px; padding: 12px 14px; margin-bottom: 6px; border: 1px solid #21262d; min-height: 80px; display: flex; flex-direction: column; justify-content: flex-end; }
+  .input-text { font-size: 13px; color: #8b949e; text-align: right; margin-bottom: 3px; min-height: 18px; font-style: italic; word-break: break-all; }
+  .result-text { font-size: 32px; font-weight: 700; text-align: right; min-height: 40px; line-height: 1.2; }
+  .context-bar { flex-shrink: 0; display: flex; align-items: center; justify-content: center; gap: 5px; margin-bottom: 4px; padding: 3px 0; font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 1.5px; min-height: 18px; color: var(--accent); }
+  .context-dot { width: 5px; height: 5px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 6px var(--accent); }
+  .smart-pad-label { flex-shrink: 0; text-align: center; font-size: 8px; color: #6e7681; text-transform: uppercase; letter-spacing: 2px; margin-bottom: 4px; padding-top: 2px; }
+  .smart-pad { flex-shrink: 0; display: grid; grid-template-columns: repeat(4, 1fr); gap: 5px; margin-bottom: 6px; }
+  .smart-btn { background: var(--accent); border: none; border-radius: 10px; color: white; font-size: 11px; font-weight: 600; padding: 8px 3px; text-decoration: none; text-align: center; display: flex; align-items: center; justify-content: center; min-height: 42px; line-height: 1.15; -webkit-user-select: none; user-select: none; transition: transform 0.1s; word-break: break-word; }
+  .smart-btn:active { filter: brightness(1.2); transform: scale(0.93); }
+  .fallback-row { flex-shrink: 0; display: flex; justify-content: flex-end; margin-bottom: 6px; padding: 0 2px; }
+  .fallback-btn { background: #21262d; border: 1px solid #30363d; border-radius: 8px; color: #8b949e; font-size: 14px; width: 36px; height: 36px; text-decoration: none; display: flex; align-items: center; justify-content: center; -webkit-user-select: none; user-select: none; }
+  .fallback-btn:active { background: #30363d; }
+  .numpad { flex: 1; display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; padding-bottom: 8px; min-height: 0; }
+  .num-btn { background: #0f3460; border: none; border-radius: 14px; color: white; font-size: 22px; font-weight: 500; text-decoration: none; text-align: center; display: flex; align-items: center; justify-content: center; -webkit-user-select: none; user-select: none; transition: transform 0.1s; min-height: 0; }
+  .num-btn:active { background: #1a4a7a; transform: scale(0.95); }
+  .num-btn.equals { background: #58a6ff; }
+  .num-btn.equals:active { background: #79b8ff; }
+  .demo-label { flex-shrink: 0; text-align: center; font-size: 8px; color: #484f58; text-transform: uppercase; letter-spacing: 1px; padding: 4px 0; }
+  .state-finance, .state-default { --accent: #e94560; }
+  .state-date { --accent: #00d9ff; }
+  .state-physics { --accent: #ffd700; }
+  .state-health { --accent: #f778ba; }
+  .state-cooking { --accent: #3fb950; }
+  .state-temp { --accent: #3fb950; }
+  .result-finance, .result-default { color: #e94560; }
+  .result-date { color: #00d9ff; }
+  .result-physics { color: #ffd700; }
+  .result-health { color: #f778ba; }
+  .result-cooking { color: #3fb950; }
+  .result-temp { color: #3fb950; }
+</style>
+</head>
+<body>
+
+<div id="s-finance"></div><div id="s-date"></div><div id="s-physics"></div>
+<div id="s-health"></div><div id="s-cooking"></div><div id="s-temp"></div>
+
+<div class="phone">
+  <div class="history-strip">
+    <a href="#s-finance" class="history-chip chip-finance">$340</a>
+    <a href="#s-date" class="history-chip chip-date">Mar-Jul</a>
+    <a href="#s-physics" class="history-chip chip-physics">120km</a>
+    <a href="#s-health" class="history-chip chip-health">BMI</a>
+    <a href="#s-cooking" class="history-chip chip-cooking">Recipe</a>
+    <a href="#s-temp" class="history-chip chip-temp">350F</a>
+  </div>
+  
+  <div class="state state-default">
+    <div class="display"><div class="input-text">340 + 8% sales tax</div><div class="result-text result-finance">$367.20</div></div>
+    <div class="context-bar"><div class="context-dot"></div><span>FINANCE - Tax</span></div>
+    <div class="smart-pad-label">Smart Pad</div>
+    <div class="smart-pad">
+      <a href="#r1" class="smart-btn">tax incl</a><a href="#r2" class="smart-btn">tax excl</a>
+      <a href="#r3" class="smart-btn">8%</a><a href="#r4" class="smart-btn">10%</a>
+      <a href="#r5" class="smart-btn">$ to €</a><a href="#r6" class="smart-btn">round</a>
+      <a href="#r7" class="smart-btn">split</a><a href="#r8" class="smart-btn">tip 15%</a>
+    </div>
+  </div>
+  
+  <div class="state state-finance">
+    <div class="display"><div class="input-text">340 + 8% sales tax</div><div class="result-text result-finance">$367.20</div></div>
+    <div class="context-bar"><div class="context-dot"></div><span>FINANCE - Tax</span></div>
+    <div class="smart-pad-label">Smart Pad</div>
+    <div class="smart-pad">
+      <a href="#r1" class="smart-btn">tax incl</a><a href="#r2" class="smart-btn">tax excl</a>
+      <a href="#r3" class="smart-btn">8%</a><a href="#r4" class="smart-btn">10%</a>
+      <a href="#r5" class="smart-btn">$ to €</a><a href="#r6" class="smart-btn">round</a>
+      <a href="#r7" class="smart-btn">split</a><a href="#r8" class="smart-btn">tip 15%</a>
+    </div>
+  </div>
+  
+  <div class="state state-date">
+    <div class="display"><div class="input-text">Mar 15 to Jul 20</div><div class="result-text result-date">127 days</div></div>
+    <div class="context-bar"><div class="context-dot"></div><span>DATE - Duration</span></div>
+    <div class="smart-pad-label">Smart Pad</div>
+    <div class="smart-pad">
+      <a href="#r1" class="smart-btn">days</a><a href="#r2" class="smart-btn">weeks</a>
+      <a href="#r3" class="smart-btn">months</a><a href="#r4" class="smart-btn">biz days</a>
+      <a href="#r5" class="smart-btn">inc end</a><a href="#r6" class="smart-btn">hours</a>
+      <a href="#r7" class="smart-btn">years</a><a href="#r8" class="smart-btn">countdown</a>
+    </div>
+  </div>
+  
+  <div class="state state-physics">
+    <div class="display"><div class="input-text">120km at 80km/h</div><div class="result-text result-physics">1h 30m</div></div>
+    <div class="context-bar"><div class="context-dot"></div><span>PHYSICS - Motion</span></div>
+    <div class="smart-pad-label">Smart Pad</div>
+    <div class="smart-pad">
+      <a href="#r1" class="smart-btn">km to mi</a><a href="#r2" class="smart-btn">mph</a>
+      <a href="#r3" class="smart-btn">fuel</a><a href="#r4" class="smart-btn">arrival</a>
+      <a href="#r5" class="smart-btn">distance</a><a href="#r6" class="smart-btn">speed</a>
+      <a href="#r7" class="smart-btn">time</a><a href="#r8" class="smart-btn">avg</a>
+    </div>
+  </div>
+  
+  <div class="state state-health">
+    <div class="display"><div class="input-text">BMI 70kg 175cm</div><div class="result-text result-health">22.9 Normal</div></div>
+    <div class="context-bar"><div class="context-dot"></div><span>HEALTH - BMI</span></div>
+    <div class="smart-pad-label">Smart Pad</div>
+    <div class="smart-pad">
+      <a href="#r1" class="smart-btn">BMI</a><a href="#r2" class="smart-btn">category</a>
+      <a href="#r3" class="smart-btn">ideal w</a><a href="#r4" class="smart-btn">body fat</a>
+      <a href="#r5" class="smart-btn">calories</a><a href="#r6" class="smart-btn">protein</a>
+      <a href="#r7" class="smart-btn">water</a><a href="#r8" class="smart-btn">macro</a>
+    </div>
+  </div>
+  
+  <div class="state state-cooking">
+    <div class="display"><div class="input-text">Double recipe x4</div><div class="result-text result-cooking">x2 servings</div></div>
+    <div class="context-bar"><div class="context-dot"></div><span>COOKING - Scale</span></div>
+    <div class="smart-pad-label">Smart Pad</div>
+    <div class="smart-pad">
+      <a href="#r1" class="smart-btn">scale 2x</a><a href="#r2" class="smart-btn">scale 0.5x</a>
+      <a href="#r3" class="smart-btn">scale 3x</a><a href="#r4" class="smart-btn">ingredients</a>
+      <a href="#r5" class="smart-btn">timer</a><a href="#r6" class="smart-btn">temp F</a>
+      <a href="#r7" class="smart-btn">temp C</a><a href="#r8" class="smart-btn">substitute</a>
+    </div>
+  </div>
+  
+  <div class="state state-temp">
+    <div class="display"><div class="input-text">350F to Celsius</div><div class="result-text result-temp">177C</div></div>
+    <div class="context-bar"><div class="context-dot"></div><span>COOKING - Temp</span></div>
+    <div class="smart-pad-label">Smart Pad</div>
+    <div class="smart-pad">
+      <a href="#r1" class="smart-btn">C</a><a href="#r2" class="smart-btn">F</a>
+      <a href="#r3" class="smart-btn">gas mark</a><a href="#r4" class="smart-btn">slow</a>
+      <a href="#r5" class="smart-btn">medium</a><a href="#r6" class="smart-btn">hot</a>
+      <a href="#r7" class="smart-btn">broil</a><a href="#r8" class="smart-btn">rest</a>
+    </div>
+  </div>
+  
+  <div class="fallback-row"><a href="#" class="fallback-btn">⌄</a></div>
+  
+  <div class="numpad">
+    <a href="#n7" class="num-btn">7</a><a href="#n8" class="num-btn">8</a><a href="#n9" class="num-btn">9</a>
+    <a href="#n4" class="num-btn">4</a><a href="#n5" class="num-btn">5</a><a href="#n6" class="num-btn">6</a>
+    <a href="#n1" class="num-btn">1</a><a href="#n2" class="num-btn">2</a><a href="#n3" class="num-btn">3</a>
+    <a href="#nd" class="num-btn">.</a><a href="#n0" class="num-btn">0</a><a href="#eq" class="num-btn equals">=</a>
+  </div>
+  
+  <div class="demo-label">Smart Calculator</div>
+</div>
+
+</body>
+</html>
